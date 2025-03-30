@@ -24,7 +24,7 @@
 
 package dev.digitality.digitalgui.api;
 
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBT;
 import dev.digitality.digitalgui.DigitalGUI;
 import lombok.Getter;
 import lombok.Setter;
@@ -44,19 +44,12 @@ import java.util.function.Consumer;
 
 @Getter @Setter
 public class InteractiveItem extends ItemStack {
-    /**
-     * The slot of the item in the GUI. Optional, but recommended. Defaults to -1.
-     */
-    private int slot;
-
     private BiConsumer<Player, ClickType> clickCallback;
     private Consumer<Player> leftClickCallback;
     private Consumer<Player> rightClickCallback;
 
-    public InteractiveItem(Material material, int slot, String displayName, String... lore) {
-        super(material);
-
-        this.slot = slot;
+    public InteractiveItem(ItemStack itemStack, String displayName, String... lore) {
+        this(itemStack);
 
         ItemMeta meta = this.getItemMeta();
         if (meta != null) {
@@ -65,41 +58,29 @@ public class InteractiveItem extends ItemStack {
 
             this.setItemMeta(meta);
         }
-
-        createMapping();
     }
 
-    public InteractiveItem(Material material, int slot) {
-        super(material);
-
-        this.slot = slot;
-
-        createMapping();
+    public InteractiveItem(Material material, String displayName, String... lore) {
+        this(new ItemStack(material), displayName, lore);
     }
 
-    public InteractiveItem(ItemStack itemStack, int slot) {
+    public InteractiveItem(ItemStack itemStack) {
         super(itemStack);
-
-        this.slot = slot;
 
         createMapping();
     }
 
     public InteractiveItem(Material material) {
-        super(material);
-
-        this.slot = -1;
-
-        createMapping();
+        this(new ItemStack(material));
     }
 
     private void createMapping() {
         UUID uuid = UUID.randomUUID();
         DigitalGUI.getItemMapper().put(uuid, this);
 
-        NBTItem nbtItem = new NBTItem(this);
-        nbtItem.setUUID("digitalgui:id", uuid);
-        this.setItemMeta(nbtItem.getItem().getItemMeta());
+        NBT.modify(this, nbt -> {
+            nbt.setString("digitalgui:id", uuid.toString());
+        });
     }
 
     public String getDisplayName() {
@@ -135,16 +116,7 @@ public class InteractiveItem extends ItemStack {
         ItemMeta meta = this.getItemMeta();
 
         if (meta != null) {
-            meta.setLore(lore);
-            this.setItemMeta(meta);
-        }
-    }
-
-    public void setLore(String... lore) {
-        ItemMeta meta = this.getItemMeta();
-
-        if (meta != null) {
-            if (lore == null || lore.length == 0) {
+            if (lore == null || lore.isEmpty()) {
                 meta.setLore(null);
             } else {
                 List<String> loreList = new ArrayList<>();
@@ -157,6 +129,10 @@ public class InteractiveItem extends ItemStack {
 
             this.setItemMeta(meta);
         }
+    }
+
+    public void setLore(String... lore) {
+        setLore(Arrays.asList(lore));
     }
 
     public void addItemFlags(ItemFlag... flags) {

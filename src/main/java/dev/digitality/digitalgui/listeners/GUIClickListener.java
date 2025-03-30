@@ -24,7 +24,7 @@
 
 package dev.digitality.digitalgui.listeners;
 
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBT;
 import dev.digitality.digitalgui.DigitalGUI;
 import dev.digitality.digitalgui.api.IGUI;
 import org.bukkit.GameMode;
@@ -33,7 +33,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
@@ -51,15 +50,13 @@ public class GUIClickListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         Player player = (Player) e.getWhoClicked();
+        UUID uuid = getUUID(e.getCurrentItem());
 
         boolean isGUIInv = e.getClickedInventory() != null && e.getClickedInventory().getHolder() != null && e.getClickedInventory().getHolder() instanceof IGUI;
-        boolean isInteractiveItem = e.getCurrentItem() != null && e.getCurrentItem().getType() != Material.AIR && new NBTItem(e.getCurrentItem()).hasTag("digitalgui:id");
 
-        if (isGUIInv || isInteractiveItem) {
+        if (isGUIInv || uuid != null) {
             e.setCancelled(true);
             player.updateInventory();
-
-            UUID uuid = new NBTItem(e.getCurrentItem()).getUUID("digitalgui:id");
 
             if (DigitalGUI.getItemMapper().containsKey(uuid))
                 DigitalGUI.getItemMapper().get(uuid).handleClick(player, e.getClick());
@@ -68,10 +65,10 @@ public class GUIClickListener implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
-        if (e.getItem() == null || e.getItem().getType() == Material.AIR || !new NBTItem(e.getItem()).hasTag("digitalgui:id"))
-            return;
+        UUID uuid = getUUID(e.getItem());
 
-        UUID uuid = new NBTItem(e.getItem()).getUUID("digitalgui:id");
+        if (uuid == null)
+            return;
 
         if (DigitalGUI.getItemMapper().containsKey(uuid) && System.currentTimeMillis() >= interactTimeout.getOrDefault(e.getPlayer().getUniqueId(), -1L)) {
             DigitalGUI.getItemMapper().get(uuid).handleClick(e.getPlayer(), e.getAction());
@@ -87,13 +84,12 @@ public class GUIClickListener implements Listener {
         if (e.getAnimationType() != PlayerAnimationType.ARM_SWING || e.getPlayer().getTargetBlock(new HashSet<Material>(), 5).getType() == Material.AIR || e.getPlayer().getGameMode() != GameMode.ADVENTURE)
             return;
 
-        ItemStack item = e.getPlayer().getInventory().getItemInHand();
-        if (item.getType() == Material.AIR || !new NBTItem(item).hasTag("digitalgui:id"))
+        UUID uuid = getUUID(e.getPlayer().getInventory().getItemInHand());
+
+        if (uuid == null)
             return;
 
-        UUID uuid = new NBTItem(item).getUUID("digitalgui:id");
-
-        if (System.currentTimeMillis() >= interactTimeout.getOrDefault(e.getPlayer().getUniqueId(), -1L) && DigitalGUI.getItemMapper().containsKey(uuid)) {
+        if (DigitalGUI.getItemMapper().containsKey(uuid) && System.currentTimeMillis() >= interactTimeout.getOrDefault(e.getPlayer().getUniqueId(), -1L)) {
             DigitalGUI.getItemMapper().get(uuid).handleClick(e.getPlayer(), Action.RIGHT_CLICK_BLOCK);
 
             interactTimeout.put(e.getPlayer().getUniqueId(), System.currentTimeMillis() + 100L); // Timeout prevents the GUI opening twice
@@ -104,12 +100,21 @@ public class GUIClickListener implements Listener {
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent e) {
-        if (e.getItemDrop().getItemStack().getType() != Material.AIR && new NBTItem(e.getItemDrop().getItemStack()).hasTag("digitalgui:id"))
+        UUID uuid = getUUID(e.getItemDrop().getItemStack());
+
+        if (e.getItemDrop().getItemStack().getType() != Material.AIR && uuid != null)
             e.setCancelled(true);
     }
 
-    @EventHandler
-    public void onDeath(PlayerDeathEvent e) {
-        e.getDrops().removeIf(item -> item.getType() != Material.AIR && new NBTItem(item).hasTag("digitalgui:id"));
+    private UUID getUUID(ItemStack item) {
+        if (item == null || item.getType() == Material.AIR)
+            return null;
+
+        return NBT.get(item, nbt -> {
+            if (!nbt.hasTag("digitalgui:id"))
+                return null;
+
+            return UUID.fromString(nbt.getString("digitalgui:id"));
+        });
     }
 }

@@ -153,9 +153,9 @@ This includes, but is not limited to:
 - Setting the item's glow with one line
 - Setting left/right click actions
 ### 4.2 Creating an InteractiveItem
-Creating an InteractiveItem is as simple as creating a new instance of the class. You can optionally specify the slot, the item's name and the item's lore. See the source code for more.
+Creating an InteractiveItem is as simple as creating a new instance of the class. You can optionally specify the item's name and the item's lore. See the source code for more.
 ```java
-InteractiveItem item = new InteractiveItem(Material.DIAMOND, 0, "§aDiamond", "§7This is a diamond.");
+InteractiveItem item = new InteractiveItem(Material.DIAMOND, "§aDiamond", "§7This is a diamond.");
 ```
 ### 4.3 Setting the click handler
 To set the click handler, you need to call the `onClick()` method. This method takes a function as a parameter, with player and click type as parameters.
@@ -202,8 +202,8 @@ public class ExampleGUI implements IGUI {
     @Override
     public Inventory getInventory() {
         Inventory inventory = Bukkit.createInventory(this, 9, "Example GUI"); // Don't forget the "this"!
-        DigitalGUI.fillInventory(inventory, new InteractiveItem(Material.GRAY_STAINED_GLASS_PANE, 0, "§7"), new InteractiveItem(Material.BLACK_STAINED_GLASS_PANE, 0, "§7"));
-        InteractiveItem item = new InteractiveItem(Material.DIAMOND, 0, "§aDiamond", "§7This is a diamond.")
+        DigitalGUI.fillInventory(inventory, new InteractiveItem(Material.GRAY_STAINED_GLASS_PANE, "§7"), new InteractiveItem(Material.BLACK_STAINED_GLASS_PANE, "§7"));
+        InteractiveItem item = new InteractiveItem(Material.DIAMOND, "§aDiamond", "§7This is a diamond.")
               .onClick((player, clickType) -> { // This will run for any click action
                 player.sendMessage("You clicked the diamond!");
               })
@@ -213,7 +213,7 @@ public class ExampleGUI implements IGUI {
               .onRightClick(player -> { // This will run on right click, regardless of whether it was InventoryClickEvent or PlayerInteractEvent
                 player.sendMessage("You right clicked the diamond!");
               });
-        inventory.setItem(item.getSlot(), item);
+        inventory.setItem(0, item);
         
         return inventory;
     }
