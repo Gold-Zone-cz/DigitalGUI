@@ -20,3 +20,4 @@ bin/
 *.ear
 
 !gradle/wrapper/gradle-wrapper.jar
+!**/libs/*.jar
